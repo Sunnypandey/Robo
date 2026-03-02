@@ -3,367 +3,288 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Universal AI Chat</title>
+<title>Universal AI PRO</title>
 
-<!-- Tailwind CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Marked CDN -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <style>
-html, body {
-  height: 100%;
-}
-.sidebar-transition {
-  transition: transform 0.3s ease;
-}
-.typing-cursor::after {
-  content: "▋";
-  animation: blink 1s infinite;
-}
-@keyframes blink {
-  0%,100% { opacity: 1; }
-  50% { opacity: 0; }
+html, body { height:100%; }
+.sidebar-transition { transition: transform .3s ease; }
+pre { position:relative; }
+.copy-btn {
+ position:absolute;
+ top:5px;
+ right:5px;
+ background:black;
+ color:white;
+ font-size:12px;
+ padding:2px 6px;
+ border-radius:4px;
+ cursor:pointer;
 }
 </style>
 </head>
+
 <body class="bg-gray-100 text-gray-900">
 
-<!-- LOADER (Prevents blank page) -->
 <div id="loading" class="flex items-center justify-center min-h-screen text-lg">
-  Loading App...
+Loading App...
 </div>
 
 <div id="app" class="hidden min-h-screen flex">
 
-  <!-- Sidebar -->
-  <div id="sidebar"
-       class="fixed md:relative z-30 w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col sidebar-transition -translate-x-full md:translate-x-0">
+<!-- Sidebar -->
+<div id="sidebar"
+class="fixed md:relative z-30 w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col sidebar-transition -translate-x-full md:translate-x-0">
 
-    <div class="p-4 border-b flex justify-between items-center">
-      <button id="newChatBtn" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">New Chat</button>
-      <button id="closeSidebar" class="md:hidden text-gray-600">✕</button>
-    </div>
-
-    <div id="chatList" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
-
-    <div class="p-2 border-t text-sm space-y-2">
-      <button id="settingsBtn" class="w-full text-left px-2 py-1 hover:bg-gray-100 rounded">⚙ Settings</button>
-      <button id="systemPromptBtn" class="w-full text-left px-2 py-1 hover:bg-gray-100 rounded">🧠 System Prompt</button>
-      <button id="themeToggle" class="w-full text-left px-2 py-1 hover:bg-gray-100 rounded">🌙 Dark Mode</button>
-    </div>
-  </div>
-
-  <!-- Overlay -->
-  <div id="overlay" class="hidden fixed inset-0 bg-black/40 z-20 md:hidden"></div>
-
-  <!-- Main -->
-  <div class="flex-1 flex flex-col min-h-screen">
-
-    <!-- Top bar -->
-    <div class="flex items-center justify-between p-3 border-b bg-white">
-      <button id="openSidebar" class="md:hidden text-xl">☰</button>
-      <h1 class="text-lg font-semibold">Universal AI</h1>
-      <div></div>
-    </div>
-
-    <!-- Messages -->
-    <div id="messages"
-         class="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
-    </div>
-
-    <!-- Input Bar -->
-    <div class="fixed bottom-0 left-0 right-0 md:left-64 bg-white border-t p-3">
-      <div class="flex gap-2">
-        <textarea id="userInput"
-                  rows="1"
-                  class="flex-1 resize-none border rounded px-3 py-2 focus:outline-none focus:ring"
-                  placeholder="Ask anything..."></textarea>
-        <button id="sendBtn"
-                class="bg-blue-500 text-white px-4 rounded">
-          Send
-        </button>
-      </div>
-    </div>
-
-  </div>
+<div class="p-4 border-b flex justify-between items-center">
+<button id="newChatBtn" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">New Chat</button>
+<button id="closeSidebar" class="md:hidden">✕</button>
 </div>
 
-<!-- Settings Modal -->
-<div id="settingsModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-40">
-  <div class="bg-white p-6 rounded w-96 max-w-full space-y-3">
-    <h2 class="text-lg font-semibold">Settings</h2>
-    <input id="apiKeyInput" type="password" placeholder="OpenRouter API Key"
-           class="w-full border px-3 py-2 rounded"/>
-    <input id="modelInput" type="text" value="deepseek/deepseek-r1:free"
-           class="w-full border px-3 py-2 rounded"/>
-    <div class="flex justify-end gap-2">
-      <button id="saveSettings" class="bg-blue-500 text-white px-3 py-1 rounded">Save</button>
-      <button id="closeSettings" class="px-3 py-1">Cancel</button>
-    </div>
-  </div>
+<div id="chatList" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+
+<div class="p-2 border-t text-sm space-y-2">
+<button id="settingsBtn" class="w-full text-left px-2 py-1 hover:bg-gray-100 rounded">⚙ Settings</button>
+<button id="exportBtn" class="w-full text-left px-2 py-1 hover:bg-gray-100 rounded">⬇ Export</button>
+<button id="importBtn" class="w-full text-left px-2 py-1 hover:bg-gray-100 rounded">⬆ Import</button>
+<button id="themeToggle" class="w-full text-left px-2 py-1 hover:bg-gray-100 rounded">🌙 Dark Mode</button>
+</div>
 </div>
 
-<!-- System Prompt Modal -->
-<div id="systemModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-40">
-  <div class="bg-white p-6 rounded w-96 max-w-full space-y-3">
-    <h2 class="text-lg font-semibold">System Prompt</h2>
-    <textarea id="systemPromptInput" rows="4"
-              class="w-full border px-3 py-2 rounded"></textarea>
-    <div class="flex justify-end gap-2">
-      <button id="saveSystemPrompt" class="bg-blue-500 text-white px-3 py-1 rounded">Save</button>
-      <button id="closeSystemModal" class="px-3 py-1">Cancel</button>
-    </div>
-  </div>
+<div id="overlay" class="hidden fixed inset-0 bg-black/40 z-20 md:hidden"></div>
+
+<!-- Main -->
+<div class="flex-1 flex flex-col min-h-screen">
+
+<div class="flex items-center justify-between p-3 border-b bg-white">
+<button id="openSidebar" class="md:hidden text-xl">☰</button>
+<h1 class="text-lg font-semibold">Universal AI PRO</h1>
+
+<select id="modeSelect" class="border px-2 py-1 text-sm rounded">
+<option value="">Default</option>
+<option value="coding">Coding</option>
+<option value="trading">Trading</option>
+<option value="content">Content Creator</option>
+</select>
+</div>
+
+<div id="messages" class="flex-1 overflow-y-auto p-4 space-y-4 pb-32"></div>
+
+<div class="fixed bottom-0 left-0 right-0 md:left-64 bg-white border-t p-3">
+<div class="flex gap-2">
+<textarea id="userInput" rows="1"
+class="flex-1 resize-none border rounded px-3 py-2 focus:outline-none"></textarea>
+
+<button id="voiceBtn" class="bg-gray-200 px-3 rounded">🎤</button>
+<button id="stopBtn" class="bg-red-500 text-white px-3 rounded hidden">Stop</button>
+<button id="sendBtn" class="bg-blue-500 text-white px-4 rounded">Send</button>
+</div>
+</div>
+
+</div>
 </div>
 
 <script>
 (function(){
 
-/* =============================
-   INIT SAFE BOOT
-============================= */
-document.getElementById("loading").style.display = "none";
+document.getElementById("loading").style.display="none";
 document.getElementById("app").classList.remove("hidden");
 
-/* =============================
-   STATE
-============================= */
 let chats = JSON.parse(localStorage.getItem("chats") || "[]");
-let currentChatId = localStorage.getItem("currentChatId") || null;
+let currentChatId = localStorage.getItem("currentChatId");
 let apiKey = localStorage.getItem("openrouter_api_key") || "";
 let model = localStorage.getItem("openrouter_model") || "deepseek/deepseek-r1:free";
+let controller = null;
 
-/* =============================
-   HELPERS
-============================= */
 function saveState(){
-  localStorage.setItem("chats", JSON.stringify(chats));
-  localStorage.setItem("currentChatId", currentChatId);
+localStorage.setItem("chats", JSON.stringify(chats));
+localStorage.setItem("currentChatId", currentChatId);
 }
 
 function getCurrentChat(){
-  return chats.find(c => c.id === currentChatId);
+return chats.find(c=>c.id===currentChatId);
 }
 
 function createChat(){
-  const id = Date.now().toString();
-  const chat = {
-    id,
-    title: "New Chat",
-    messages: [],
-    systemPrompt: ""
-  };
-  chats.unshift(chat);
-  currentChatId = id;
-  saveState();
-  renderChatList();
-  renderMessages();
+const id = Date.now().toString();
+const chat = { id, title:"New Chat", messages:[] };
+chats.unshift(chat);
+currentChatId=id;
+saveState();
+renderChatList();
+renderMessages();
 }
 
 function renderChatList(){
-  const list = document.getElementById("chatList");
-  list.innerHTML = "";
-  chats.forEach(chat=>{
-    const div = document.createElement("div");
-    div.className = "flex justify-between items-center px-2 py-1 hover:bg-gray-100 rounded cursor-pointer";
-    div.innerHTML = `
-      <span class="truncate">${chat.title}</span>
-      <div class="flex gap-1">
-        <button data-id="${chat.id}" class="rename text-xs">✏</button>
-        <button data-id="${chat.id}" class="delete text-xs text-red-500">🗑</button>
-      </div>
-    `;
-    div.onclick = ()=>{ currentChatId=chat.id; saveState(); renderMessages(); };
-    list.appendChild(div);
-  });
+const list=document.getElementById("chatList");
+list.innerHTML="";
+chats.forEach(chat=>{
+const div=document.createElement("div");
+div.className="px-2 py-1 hover:bg-gray-100 rounded cursor-pointer";
+div.innerText=chat.title;
+div.onclick=()=>{currentChatId=chat.id;saveState();renderMessages();};
+list.appendChild(div);
+});
 }
 
 function renderMessages(){
-  const container = document.getElementById("messages");
-  container.innerHTML = "";
-  const chat = getCurrentChat();
-  if(!chat) return;
+const container=document.getElementById("messages");
+container.innerHTML="";
+const chat=getCurrentChat();
+if(!chat) return;
 
-  chat.messages.forEach(msg=>{
-    const div = document.createElement("div");
-    div.className = msg.role==="user"
-      ? "text-right"
-      : "text-left";
-    const bubble = document.createElement("div");
-    bubble.className = msg.role==="user"
-      ? "inline-block bg-blue-500 text-white px-3 py-2 rounded-lg"
-      : "inline-block bg-gray-200 px-3 py-2 rounded-lg";
-    bubble.innerHTML = marked.parse(msg.content || "");
-    div.appendChild(bubble);
-    container.appendChild(div);
-  });
+chat.messages.forEach(msg=>{
+const wrap=document.createElement("div");
+wrap.className=msg.role==="user"?"text-right":"text-left";
 
-  container.scrollTop = container.scrollHeight;
+const bubble=document.createElement("div");
+bubble.className=msg.role==="user"
+?"inline-block bg-blue-500 text-white px-3 py-2 rounded-lg"
+:"inline-block bg-gray-200 px-3 py-2 rounded-lg";
+
+bubble.innerHTML=marked.parse(msg.content||"");
+wrap.appendChild(bubble);
+container.appendChild(wrap);
+});
+
+container.scrollTop=container.scrollHeight;
+addCopyButtons();
 }
 
-/* =============================
-   STREAMING
-============================= */
+function addCopyButtons(){
+document.querySelectorAll("pre").forEach(pre=>{
+if(pre.querySelector(".copy-btn")) return;
+const btn=document.createElement("div");
+btn.className="copy-btn";
+btn.innerText="Copy";
+btn.onclick=()=>navigator.clipboard.writeText(pre.innerText);
+pre.appendChild(btn);
+});
+}
+
 async function sendMessage(){
-  const input = document.getElementById("userInput");
-  const text = input.value.trim();
-  if(!text) return;
-  if(!apiKey){ alert("Add API key in settings."); return; }
+const input=document.getElementById("userInput");
+const text=input.value.trim();
+if(!text) return;
+if(!apiKey) return alert("Add API key in settings");
 
-  const chat = getCurrentChat();
-  chat.messages.push({role:"user", content:text});
-  input.value="";
-  renderMessages();
+const chat=getCurrentChat();
+chat.messages.push({role:"user",content:text});
+input.value="";
+renderMessages();
 
-  const aiMsg = {role:"assistant", content:""};
-  chat.messages.push(aiMsg);
-  renderMessages();
+const aiMsg={role:"assistant",content:""};
+chat.messages.push(aiMsg);
+renderMessages();
 
-  try{
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer "+apiKey
-      },
-      body:JSON.stringify({
-        model,
-        stream:true,
-        messages:[
-          ...(chat.systemPrompt ? [{role:"system", content:chat.systemPrompt}] : []),
-          ...chat.messages.filter(m=>m.role!=="assistant" || m.content)
-        ]
-      })
-    });
+controller = new AbortController();
+document.getElementById("stopBtn").classList.remove("hidden");
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    while(true){
-      const {done,value} = await reader.read();
-      if(done) break;
-      const chunk = decoder.decode(value);
-      const lines = chunk.split("\n");
-      lines.forEach(line=>{
-        if(line.startsWith("data: ")){
-          const data = line.replace("data: ","");
-          if(data==="[DONE]") return;
-          try{
-            const json = JSON.parse(data);
-            const token = json.choices?.[0]?.delta?.content;
-            if(token){
-              aiMsg.content += token;
-              renderMessages();
-            }
-          }catch{}
-        }
-      });
-    }
-
-    saveState();
-  }catch(e){
-    aiMsg.content = "Error: "+e.message;
-    renderMessages();
-  }
-}
-
-/* =============================
-   EVENTS
-============================= */
-document.getElementById("sendBtn").onclick = sendMessage;
-document.getElementById("userInput").addEventListener("keydown",e=>{
-  if(e.key==="Enter" && !e.shiftKey){
-    e.preventDefault();
-    sendMessage();
-  }
+try{
+const response=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+apiKey
+},
+body:JSON.stringify({
+model,
+stream:true,
+messages:chat.messages
+}),
+signal: controller.signal
 });
 
-document.getElementById("newChatBtn").onclick = createChat;
+const reader=response.body.getReader();
+const decoder=new TextDecoder();
 
-document.getElementById("settingsBtn").onclick = ()=>{
-  document.getElementById("settingsModal").classList.remove("hidden");
-  document.getElementById("apiKeyInput").value = apiKey;
-  document.getElementById("modelInput").value = model;
-};
-
-document.getElementById("saveSettings").onclick = ()=>{
-  apiKey = document.getElementById("apiKeyInput").value.trim();
-  model = document.getElementById("modelInput").value.trim();
-  localStorage.setItem("openrouter_api_key", apiKey);
-  localStorage.setItem("openrouter_model", model);
-  document.getElementById("settingsModal").classList.add("hidden");
-};
-
-document.getElementById("closeSettings").onclick = ()=>{
-  document.getElementById("settingsModal").classList.add("hidden");
-};
-
-document.getElementById("systemPromptBtn").onclick = ()=>{
-  const chat = getCurrentChat();
-  document.getElementById("systemPromptInput").value = chat?.systemPrompt || "";
-  document.getElementById("systemModal").classList.remove("hidden");
-};
-
-document.getElementById("saveSystemPrompt").onclick = ()=>{
-  const chat = getCurrentChat();
-  if(chat){
-    chat.systemPrompt = document.getElementById("systemPromptInput").value;
-    saveState();
-  }
-  document.getElementById("systemModal").classList.add("hidden");
-};
-
-document.getElementById("closeSystemModal").onclick = ()=>{
-  document.getElementById("systemModal").classList.add("hidden");
-};
-
-document.getElementById("themeToggle").onclick = ()=>{
-  document.body.classList.toggle("bg-gray-900");
-  document.body.classList.toggle("text-white");
-  localStorage.setItem("darkMode", document.body.classList.contains("bg-gray-900"));
-};
-
-if(localStorage.getItem("darkMode")==="true"){
-  document.body.classList.add("bg-gray-900","text-white");
+while(true){
+const {done,value}=await reader.read();
+if(done) break;
+const chunk=decoder.decode(value);
+chunk.split("\n").forEach(line=>{
+if(line.startsWith("data: ")){
+const data=line.replace("data: ","");
+if(data==="[DONE]") return;
+try{
+const json=JSON.parse(data);
+const token=json.choices?.[0]?.delta?.content;
+if(token){
+aiMsg.content+=token;
+renderMessages();
+}
+}catch{}
+}
+});
 }
 
-/* Sidebar mobile */
-document.getElementById("openSidebar").onclick = ()=>{
-  document.getElementById("sidebar").classList.remove("-translate-x-full");
-  document.getElementById("overlay").classList.remove("hidden");
+saveState();
+}catch(e){
+aiMsg.content="Error: "+e.message;
+renderMessages();
+}
+
+document.getElementById("stopBtn").classList.add("hidden");
+}
+
+document.getElementById("sendBtn").onclick=sendMessage;
+document.getElementById("stopBtn").onclick=()=>{ if(controller) controller.abort(); };
+
+document.getElementById("voiceBtn").onclick=function(){
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SpeechRecognition) return alert("Voice not supported");
+const recognition=new SpeechRecognition();
+recognition.lang="en-IN";
+recognition.start();
+recognition.onresult=function(e){
+document.getElementById("userInput").value=e.results[0][0].transcript;
 };
-document.getElementById("closeSidebar").onclick = closeSidebar;
-document.getElementById("overlay").onclick = closeSidebar;
+};
+
+document.getElementById("exportBtn").onclick=function(){
+const data=JSON.stringify(chats);
+const blob=new Blob([data],{type:"application/json"});
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="chat-backup.json";
+a.click();
+};
+
+document.getElementById("importBtn").onclick=function(){
+const input=document.createElement("input");
+input.type="file";
+input.onchange=function(e){
+const file=e.target.files[0];
+const reader=new FileReader();
+reader.onload=function(){
+chats=JSON.parse(reader.result);
+saveState();
+renderChatList();
+renderMessages();
+};
+reader.readAsText(file);
+};
+input.click();
+};
+
+document.getElementById("themeToggle").onclick=function(){
+document.body.classList.toggle("bg-gray-900");
+document.body.classList.toggle("text-white");
+};
+
+document.getElementById("openSidebar").onclick=function(){
+document.getElementById("sidebar").classList.remove("-translate-x-full");
+document.getElementById("overlay").classList.remove("hidden");
+};
+document.getElementById("closeSidebar").onclick=closeSidebar;
+document.getElementById("overlay").onclick=closeSidebar;
 function closeSidebar(){
-  document.getElementById("sidebar").classList.add("-translate-x-full");
-  document.getElementById("overlay").classList.add("hidden");
+document.getElementById("sidebar").classList.add("-translate-x-full");
+document.getElementById("overlay").classList.add("hidden");
 }
 
-/* Chat rename/delete */
-document.getElementById("chatList").addEventListener("click",function(e){
-  if(e.target.classList.contains("delete")){
-    const id = e.target.dataset.id;
-    chats = chats.filter(c=>c.id!==id);
-    if(currentChatId===id) currentChatId=null;
-    saveState();
-    renderChatList();
-    renderMessages();
-    e.stopPropagation();
-  }
-  if(e.target.classList.contains("rename")){
-    const id = e.target.dataset.id;
-    const name = prompt("Rename chat:");
-    const chat = chats.find(c=>c.id===id);
-    if(chat && name){ chat.title=name; saveState(); renderChatList(); }
-    e.stopPropagation();
-  }
-});
-
-/* =============================
-   START
-============================= */
 if(!currentChatId) createChat();
 renderChatList();
 renderMessages();
