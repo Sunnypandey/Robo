@@ -1,225 +1,374 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SPTRON ULTRA AI</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Universal AI Chat</title>
+
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Marked CDN -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI,sans-serif;}
-
-body{
-  background:linear-gradient(135deg,#0f0f0f,#1a1a2e,#16213e);
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  color:white;
+html, body {
+  height: 100%;
 }
-
-.chat-container{
-  width:95%;
-  max-width:900px;
-  height:92vh;
-  background:rgba(255,255,255,0.05);
-  backdrop-filter:blur(20px);
-  border-radius:20px;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
+.sidebar-transition {
+  transition: transform 0.3s ease;
 }
-
-.header{
-  padding:15px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  background:rgba(255,255,255,0.05);
-  font-weight:bold;
+.typing-cursor::after {
+  content: "▋";
+  animation: blink 1s infinite;
 }
-
-.messages{
-  flex:1;
-  padding:15px;
-  overflow-y:auto;
-  display:flex;
-  flex-direction:column;
-}
-
-.message{
-  padding:10px 14px;
-  border-radius:15px;
-  margin-bottom:10px;
-  max-width:80%;
-  word-wrap:break-word;
-}
-
-.user{background:#00adb5;align-self:flex-end;}
-.bot{background:#222831;align-self:flex-start;}
-
-.input-area{
-  display:flex;
-  padding:10px;
-  gap:10px;
-  background:rgba(255,255,255,0.05);
-}
-
-input{
-  flex:1;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  background:#1e1e1e;
-  color:white;
-  outline:none;
-}
-
-button{
-  padding:10px 15px;
-  border:none;
-  border-radius:10px;
-  background:#00adb5;
-  color:white;
-  cursor:pointer;
-}
-
-button:hover{background:#007a80;}
-
-#settingsPanel{
-  display:none;
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  background:#222;
-  padding:20px;
-  border-radius:15px;
-  width:300px;
-  z-index:1000;
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 </style>
 </head>
+<body class="bg-gray-100 text-gray-900">
 
-<body>
+<!-- LOADER (Prevents blank page) -->
+<div id="loading" class="flex items-center justify-center min-h-screen text-lg">
+  Loading App...
+</div>
 
-<div class="chat-container">
-  <div class="header">
-    <span>SPTRON ULTRA AI 🚀</span>
-    <button onclick="openSettings()">⚙</button>
+<div id="app" class="hidden min-h-screen flex">
+
+  <!-- Sidebar -->
+  <div id="sidebar"
+       class="fixed md:relative z-30 w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col sidebar-transition -translate-x-full md:translate-x-0">
+
+    <div class="p-4 border-b flex justify-between items-center">
+      <button id="newChatBtn" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">New Chat</button>
+      <button id="closeSidebar" class="md:hidden text-gray-600">✕</button>
+    </div>
+
+    <div id="chatList" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+
+    <div class="p-2 border-t text-sm space-y-2">
+      <button id="settingsBtn" class="w-full text-left px-2 py-1 hover:bg-gray-100 rounded">⚙ Settings</button>
+      <button id="systemPromptBtn" class="w-full text-left px-2 py-1 hover:bg-gray-100 rounded">🧠 System Prompt</button>
+      <button id="themeToggle" class="w-full text-left px-2 py-1 hover:bg-gray-100 rounded">🌙 Dark Mode</button>
+    </div>
   </div>
 
-  <div class="messages" id="messages"></div>
+  <!-- Overlay -->
+  <div id="overlay" class="hidden fixed inset-0 bg-black/40 z-20 md:hidden"></div>
 
-  <div class="input-area">
-    <input type="text" id="userInput" placeholder="Ask anything..."
-      onkeydown="if(event.key==='Enter') sendMessage();">
-    <button onclick="sendMessage()">Send</button>
+  <!-- Main -->
+  <div class="flex-1 flex flex-col min-h-screen">
+
+    <!-- Top bar -->
+    <div class="flex items-center justify-between p-3 border-b bg-white">
+      <button id="openSidebar" class="md:hidden text-xl">☰</button>
+      <h1 class="text-lg font-semibold">Universal AI</h1>
+      <div></div>
+    </div>
+
+    <!-- Messages -->
+    <div id="messages"
+         class="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
+    </div>
+
+    <!-- Input Bar -->
+    <div class="fixed bottom-0 left-0 right-0 md:left-64 bg-white border-t p-3">
+      <div class="flex gap-2">
+        <textarea id="userInput"
+                  rows="1"
+                  class="flex-1 resize-none border rounded px-3 py-2 focus:outline-none focus:ring"
+                  placeholder="Ask anything..."></textarea>
+        <button id="sendBtn"
+                class="bg-blue-500 text-white px-4 rounded">
+          Send
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- SETTINGS PANEL -->
-<div id="settingsPanel">
-  <h3>Settings</h3>
+<!-- Settings Modal -->
+<div id="settingsModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-40">
+  <div class="bg-white p-6 rounded w-96 max-w-full space-y-3">
+    <h2 class="text-lg font-semibold">Settings</h2>
+    <input id="apiKeyInput" type="password" placeholder="OpenRouter API Key"
+           class="w-full border px-3 py-2 rounded"/>
+    <input id="modelInput" type="text" value="deepseek/deepseek-r1:free"
+           class="w-full border px-3 py-2 rounded"/>
+    <div class="flex justify-end gap-2">
+      <button id="saveSettings" class="bg-blue-500 text-white px-3 py-1 rounded">Save</button>
+      <button id="closeSettings" class="px-3 py-1">Cancel</button>
+    </div>
+  </div>
+</div>
 
-  <label>OpenRouter API Key:</label>
-  <input type="text" id="apiInput" placeholder="sk-or-v1-xxxx">
-  <br><br>
-
-  <label>Select Model:</label>
-  <select id="modelSelect">
-    <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
-    <option value="mistralai/mistral-7b-instruct">Mistral 7B</option>
-  </select>
-
-  <br><br>
-  <button onclick="saveAPI()">Save</button>
-  <button onclick="closeSettings()">Close</button>
+<!-- System Prompt Modal -->
+<div id="systemModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-40">
+  <div class="bg-white p-6 rounded w-96 max-w-full space-y-3">
+    <h2 class="text-lg font-semibold">System Prompt</h2>
+    <textarea id="systemPromptInput" rows="4"
+              class="w-full border px-3 py-2 rounded"></textarea>
+    <div class="flex justify-end gap-2">
+      <button id="saveSystemPrompt" class="bg-blue-500 text-white px-3 py-1 rounded">Save</button>
+      <button id="closeSystemModal" class="px-3 py-1">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <script>
+(function(){
 
-let API_KEY = localStorage.getItem("openrouter_api") || "";
+/* =============================
+   INIT SAFE BOOT
+============================= */
+document.getElementById("loading").style.display = "none";
+document.getElementById("app").classList.remove("hidden");
 
-window.onload = () => {
-  if(API_KEY){
-    document.getElementById("apiInput").value = API_KEY;
-  }
-};
+/* =============================
+   STATE
+============================= */
+let chats = JSON.parse(localStorage.getItem("chats") || "[]");
+let currentChatId = localStorage.getItem("currentChatId") || null;
+let apiKey = localStorage.getItem("openrouter_api_key") || "";
+let model = localStorage.getItem("openrouter_model") || "deepseek/deepseek-r1:free";
 
+/* =============================
+   HELPERS
+============================= */
+function saveState(){
+  localStorage.setItem("chats", JSON.stringify(chats));
+  localStorage.setItem("currentChatId", currentChatId);
+}
+
+function getCurrentChat(){
+  return chats.find(c => c.id === currentChatId);
+}
+
+function createChat(){
+  const id = Date.now().toString();
+  const chat = {
+    id,
+    title: "New Chat",
+    messages: [],
+    systemPrompt: ""
+  };
+  chats.unshift(chat);
+  currentChatId = id;
+  saveState();
+  renderChatList();
+  renderMessages();
+}
+
+function renderChatList(){
+  const list = document.getElementById("chatList");
+  list.innerHTML = "";
+  chats.forEach(chat=>{
+    const div = document.createElement("div");
+    div.className = "flex justify-between items-center px-2 py-1 hover:bg-gray-100 rounded cursor-pointer";
+    div.innerHTML = `
+      <span class="truncate">${chat.title}</span>
+      <div class="flex gap-1">
+        <button data-id="${chat.id}" class="rename text-xs">✏</button>
+        <button data-id="${chat.id}" class="delete text-xs text-red-500">🗑</button>
+      </div>
+    `;
+    div.onclick = ()=>{ currentChatId=chat.id; saveState(); renderMessages(); };
+    list.appendChild(div);
+  });
+}
+
+function renderMessages(){
+  const container = document.getElementById("messages");
+  container.innerHTML = "";
+  const chat = getCurrentChat();
+  if(!chat) return;
+
+  chat.messages.forEach(msg=>{
+    const div = document.createElement("div");
+    div.className = msg.role==="user"
+      ? "text-right"
+      : "text-left";
+    const bubble = document.createElement("div");
+    bubble.className = msg.role==="user"
+      ? "inline-block bg-blue-500 text-white px-3 py-2 rounded-lg"
+      : "inline-block bg-gray-200 px-3 py-2 rounded-lg";
+    bubble.innerHTML = marked.parse(msg.content || "");
+    div.appendChild(bubble);
+    container.appendChild(div);
+  });
+
+  container.scrollTop = container.scrollHeight;
+}
+
+/* =============================
+   STREAMING
+============================= */
 async function sendMessage(){
-
-  if(!API_KEY){
-    alert("⚙ Please add API Key in Settings");
-    return;
-  }
-
   const input = document.getElementById("userInput");
-  const message = input.value.trim();
-  if(!message) return;
+  const text = input.value.trim();
+  if(!text) return;
+  if(!apiKey){ alert("Add API key in settings."); return; }
 
-  addMessage(message,"user");
+  const chat = getCurrentChat();
+  chat.messages.push({role:"user", content:text});
   input.value="";
+  renderMessages();
 
-  const typing = addMessage("Typing...","bot");
+  const aiMsg = {role:"assistant", content:""};
+  chat.messages.push(aiMsg);
+  renderMessages();
 
   try{
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions",{
       method:"POST",
       headers:{
-        "Authorization":"Bearer "+API_KEY,
-        "Content-Type":"application/json"
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+apiKey
       },
       body:JSON.stringify({
-        model:document.getElementById("modelSelect").value,
-        messages:[{role:"user",content:message}]
+        model,
+        stream:true,
+        messages:[
+          ...(chat.systemPrompt ? [{role:"system", content:chat.systemPrompt}] : []),
+          ...chat.messages.filter(m=>m.role!=="assistant" || m.content)
+        ]
       })
     });
 
-    const data = await response.json();
-    typing.remove();
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-    if(data.choices){
-      addMessage(data.choices[0].message.content,"bot");
-    }else{
-      addMessage("Error: Check API Key or Credits","bot");
+    while(true){
+      const {done,value} = await reader.read();
+      if(done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n");
+      lines.forEach(line=>{
+        if(line.startsWith("data: ")){
+          const data = line.replace("data: ","");
+          if(data==="[DONE]") return;
+          try{
+            const json = JSON.parse(data);
+            const token = json.choices?.[0]?.delta?.content;
+            if(token){
+              aiMsg.content += token;
+              renderMessages();
+            }
+          }catch{}
+        }
+      });
     }
 
+    saveState();
   }catch(e){
-    typing.remove();
-    addMessage("Network Error","bot");
+    aiMsg.content = "Error: "+e.message;
+    renderMessages();
   }
 }
 
-function addMessage(text,sender){
-  const msg=document.createElement("div");
-  msg.classList.add("message",sender);
-  msg.innerText=text;
-  document.getElementById("messages").appendChild(msg);
-  document.getElementById("messages").scrollTop=
-    document.getElementById("messages").scrollHeight;
-  return msg;
-}
-
-function openSettings(){
-  document.getElementById("settingsPanel").style.display="block";
-}
-
-function closeSettings(){
-  document.getElementById("settingsPanel").style.display="none";
-}
-
-function saveAPI(){
-  const key=document.getElementById("apiInput").value.trim();
-  if(!key){
-    alert("Enter API Key");
-    return;
+/* =============================
+   EVENTS
+============================= */
+document.getElementById("sendBtn").onclick = sendMessage;
+document.getElementById("userInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter" && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
   }
-  localStorage.setItem("openrouter_api",key);
-  API_KEY=key;
-  alert("API Key Saved ✅");
-  closeSettings();
+});
+
+document.getElementById("newChatBtn").onclick = createChat;
+
+document.getElementById("settingsBtn").onclick = ()=>{
+  document.getElementById("settingsModal").classList.remove("hidden");
+  document.getElementById("apiKeyInput").value = apiKey;
+  document.getElementById("modelInput").value = model;
+};
+
+document.getElementById("saveSettings").onclick = ()=>{
+  apiKey = document.getElementById("apiKeyInput").value.trim();
+  model = document.getElementById("modelInput").value.trim();
+  localStorage.setItem("openrouter_api_key", apiKey);
+  localStorage.setItem("openrouter_model", model);
+  document.getElementById("settingsModal").classList.add("hidden");
+};
+
+document.getElementById("closeSettings").onclick = ()=>{
+  document.getElementById("settingsModal").classList.add("hidden");
+};
+
+document.getElementById("systemPromptBtn").onclick = ()=>{
+  const chat = getCurrentChat();
+  document.getElementById("systemPromptInput").value = chat?.systemPrompt || "";
+  document.getElementById("systemModal").classList.remove("hidden");
+};
+
+document.getElementById("saveSystemPrompt").onclick = ()=>{
+  const chat = getCurrentChat();
+  if(chat){
+    chat.systemPrompt = document.getElementById("systemPromptInput").value;
+    saveState();
+  }
+  document.getElementById("systemModal").classList.add("hidden");
+};
+
+document.getElementById("closeSystemModal").onclick = ()=>{
+  document.getElementById("systemModal").classList.add("hidden");
+};
+
+document.getElementById("themeToggle").onclick = ()=>{
+  document.body.classList.toggle("bg-gray-900");
+  document.body.classList.toggle("text-white");
+  localStorage.setItem("darkMode", document.body.classList.contains("bg-gray-900"));
+};
+
+if(localStorage.getItem("darkMode")==="true"){
+  document.body.classList.add("bg-gray-900","text-white");
 }
 
+/* Sidebar mobile */
+document.getElementById("openSidebar").onclick = ()=>{
+  document.getElementById("sidebar").classList.remove("-translate-x-full");
+  document.getElementById("overlay").classList.remove("hidden");
+};
+document.getElementById("closeSidebar").onclick = closeSidebar;
+document.getElementById("overlay").onclick = closeSidebar;
+function closeSidebar(){
+  document.getElementById("sidebar").classList.add("-translate-x-full");
+  document.getElementById("overlay").classList.add("hidden");
+}
+
+/* Chat rename/delete */
+document.getElementById("chatList").addEventListener("click",function(e){
+  if(e.target.classList.contains("delete")){
+    const id = e.target.dataset.id;
+    chats = chats.filter(c=>c.id!==id);
+    if(currentChatId===id) currentChatId=null;
+    saveState();
+    renderChatList();
+    renderMessages();
+    e.stopPropagation();
+  }
+  if(e.target.classList.contains("rename")){
+    const id = e.target.dataset.id;
+    const name = prompt("Rename chat:");
+    const chat = chats.find(c=>c.id===id);
+    if(chat && name){ chat.title=name; saveState(); renderChatList(); }
+    e.stopPropagation();
+  }
+});
+
+/* =============================
+   START
+============================= */
+if(!currentChatId) createChat();
+renderChatList();
+renderMessages();
+
+})();
 </script>
 
 </body>
