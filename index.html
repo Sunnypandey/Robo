@@ -25,7 +25,7 @@ body{
 .chat-container{
   width:95%;
   max-width:900px;
-  height:90vh;
+  height:92vh;
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(20px);
   border-radius:20px;
@@ -36,13 +36,11 @@ body{
 
 .header{
   padding:15px;
-  text-align:center;
-  font-weight:bold;
-  font-size:18px;
-  background:rgba(255,255,255,0.05);
   display:flex;
   justify-content:space-between;
   align-items:center;
+  background:rgba(255,255,255,0.05);
+  font-weight:bold;
 }
 
 .messages{
@@ -58,6 +56,7 @@ body{
   border-radius:15px;
   margin-bottom:10px;
   max-width:80%;
+  word-wrap:break-word;
 }
 
 .user{
@@ -84,6 +83,7 @@ input{
   border-radius:10px;
   background:#1e1e1e;
   color:white;
+  outline:none;
 }
 
 button{
@@ -110,6 +110,7 @@ button:hover{
   padding:20px;
   border-radius:15px;
   z-index:1000;
+  width:300px;
 }
 </style>
 </head>
@@ -125,57 +126,78 @@ button:hover{
   <div class="messages" id="messages"></div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Ask anything...">
+    <input type="text" id="userInput" placeholder="Ask anything..." onkeydown="if(event.key==='Enter') sendMessage();">
     <button onclick="sendMessage()">Send</button>
   </div>
 </div>
 
-<!-- Settings -->
+<!-- SETTINGS -->
 <div id="settingsPanel">
   <h3>Settings</h3>
+  <label>OpenRouter API Key:</label>
+  <input type="text" id="apiInput" placeholder="sk-or-v1-xxxx">
+  <br><br>
   <label>Select Model:</label>
   <select id="modelSelect">
     <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
     <option value="mistralai/mistral-7b-instruct">Mistral 7B</option>
   </select>
   <br><br>
+  <button onclick="saveAPI()">Save</button>
   <button onclick="closeSettings()">Close</button>
 </div>
 
 <script>
 
-const API_KEY = "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";
+let API_KEY = localStorage.getItem("openrouter_api") || "";
+
+window.onload = () => {
+  if(API_KEY){
+    document.getElementById("apiInput").value = API_KEY;
+  }
+};
 
 async function sendMessage() {
+
+  if(!API_KEY){
+    alert("Add API Key in Settings ⚙");
+    return;
+  }
+
   const input = document.getElementById("userInput");
-  const message = input.value;
+  const message = input.value.trim();
   if (!message) return;
 
   addMessage(message, "user");
   input.value = "";
 
-  addMessage("Typing...", "bot");
+  const typingMsg = addMessage("Typing...", "bot");
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": "Bearer " + API_KEY,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: document.getElementById("modelSelect").value,
-      messages: [{ role: "user", content: message }]
-    })
-  });
+  try{
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: document.getElementById("modelSelect").value,
+        messages: [{ role: "user", content: message }]
+      })
+    });
 
-  const data = await response.json();
+    const data = await response.json();
+    typingMsg.remove();
 
-  document.querySelector(".bot:last-child").remove();
+    if(data.choices){
+      addMessage(data.choices[0].message.content, "bot");
+    } else {
+      addMessage("API Error: Check key or credits", "bot");
+    }
 
-  if(data.choices){
-    addMessage(data.choices[0].message.content, "bot");
-  } else {
-    addMessage("Error: Check API Key or Credits", "bot");
+  } catch(error){
+    typingMsg.remove();
+    addMessage("Network Error!", "bot");
   }
 }
 
@@ -186,6 +208,7 @@ function addMessage(text, sender){
   document.getElementById("messages").appendChild(msg);
   document.getElementById("messages").scrollTop =
     document.getElementById("messages").scrollHeight;
+  return msg;
 }
 
 function openSettings(){
@@ -194,6 +217,18 @@ function openSettings(){
 
 function closeSettings(){
   document.getElementById("settingsPanel").style.display = "none";
+}
+
+function saveAPI(){
+  const key = document.getElementById("apiInput").value.trim();
+  if(!key){
+    alert("Enter API Key");
+    return;
+  }
+  localStorage.setItem("openrouter_api", key);
+  API_KEY = key;
+  alert("API Key Saved ✅");
+  closeSettings();
 }
 
 </script>
